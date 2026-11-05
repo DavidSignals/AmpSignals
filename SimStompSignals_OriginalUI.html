@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sim Stomp Signals</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* Estilos de respaldo integrados para asegurar idéntica UI original si falta el CSS externo */
+        body { margin: 0; background: #121212; color: #fff; font-family: 'Inter', sans-serif; }
+        
+        /* Splash / Welcome Screen Original Estilizado sin parecer de IA */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #1c1c1c; padding: 2.5rem; border-radius: 6px; text-align: center; border: 1px solid #333; box-shadow: 0 20px 40px rgba(0,0,0,0.7); max-width: 400px; width: 90%; }
+        .modal-content h1 { font-family: 'Roboto Mono', monospace; font-size: 1.5rem; letter-spacing: 2px; margin-bottom: 5px; color: #fff; }
+        .modal-content p { color: #888; font-size: 0.9rem; margin: 5px 0; }
+        .modal-content .subtitle { color: #e74c3c; font-family: 'Roboto Mono', monospace; font-size: 0.8rem; margin-bottom: 25px; }
+        .instruction-list { background: #141414; padding: 15px; border-radius: 4px; border: 1px solid #2a2a2a; margin-bottom: 20px; text-align: left; font-size: 0.85rem; color: #ccc; }
+        .modal-btn { background: #e74c3c; color: white; border: none; padding: 12px 24px; font-family: 'Roboto Mono', monospace; font-weight: bold; cursor: pointer; border-radius: 3px; width: 100%; letter-spacing: 1px; transition: background 0.2s; }
+        .modal-btn:hover { background: #c0392b; }
+        .modal-btn.secondary { background: #333; margin-top: 10px; }
+        .modal-btn.secondary:hover { background: #444; }
+
+        /* Estructura Original de la UI de los Amps */
+        .app-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #222; margin-bottom: 20px; }
+        .logo { font-weight: 700; font-size: 1.1rem; letter-spacing: 1px; }
+        .logo .accent { color: #e74c3c; }
+        .top-controls { display: flex; gap: 10px; align-items: center; }
+        .icon-btn { background: #222; color: #ccc; border: 1px solid #333; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-family: 'Roboto Mono', monospace; font-size: 0.8rem; }
+        .icon-btn:hover { background: #333; color: #fff; }
+        .power-btn { background: #222; border: 1px solid #333; color: #e74c3c; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        
+        .amp-head-unit { background: #181818; padding: 25px; border-radius: 8px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .amp-grille { height: 70px; background: repeating-linear-gradient(0deg, #111, #111 2px, #1c1c1c 2px, #1c1c1c 4px); border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid #2a2a2a; margin-bottom: 25px; }
+        .tube-glow { position: absolute; width: 60px; height: 10px; background: rgba(231, 76, 60, 0.4); filter: blur(8px); top: 50%; transform: translateY(-50%); }
+        .logo-plate { text-align: center; background: #121212; padding: 4px 20px; border: 1px solid #333; z-index: 2; }
+        .logo-plate span { display: block; font-family: 'Roboto Mono', monospace; font-size: 0.75rem; letter-spacing: 2px; color: #aaa; }
+        .logo-plate .model-name { color: #e74c3c; font-weight: bold; font-size: 0.85rem; }
+
+        .control-panel { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; flex-wrap: wrap; gap: 15px; }
+        .section-group { display: flex; gap: 20px; align-items: center; background: #141414; padding: 15px 20px; border-radius: 6px; border: 1px solid #262626; }
+        .separator { width: 1px; height: 60px; background: #262626; }
+
+        .knob-wrapper { display: flex; flex-direction: column; align-items: center; position: relative; }
+        .knob { width: 42px; height: 42px; border-radius: 50%; background: radial-gradient(circle, #333 0%, #1a1a1a 100%); border: 2px solid #444; position: relative; cursor: ns-resize; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+        .knob.big { width: 56px; height: 56px; }
+        .knob-indicator { position: absolute; top: 4px; left: 50%; width: 2px; height: 10px; background: #fff; transform: translateX(-50%); border-radius: 1px; }
+        .knob-wrapper label { font-family: 'Roboto Mono', monospace; font-size: 0.65rem; margin-top: 8px; color: #888; letter-spacing: 1px; }
+        
+        .floating-tooltip { position: absolute; bottom: 105%; background: #000; color: #e74c3c; font-family: 'Roboto Mono', monospace; font-size: 0.7rem; padding: 2px 6px; border-radius: 3px; border: 1px solid #333; pointer-events: none; opacity: 0; transition: opacity 0.2s; white-space: nowrap; z-index: 10; }
+        .knob-wrapper:hover .floating-tooltip { opacity: 1; }
+
+        .switch-wrapper { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .switch-wrapper span { font-family: 'Roboto Mono', monospace; font-size: 0.65rem; color: #888; letter-spacing: 1px; }
+        .toggle-switch { width: 34px; height: 18px; background: #262626; border-radius: 10px; position: relative; cursor: pointer; border: 1px solid #383838; transition: background 0.2s; }
+        .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: #888; border-radius: 50%; transition: transform 0.2s, background 0.2s; }
+        input[type="checkbox"] { display: none; }
+        input[type="checkbox"]:checked + .toggle-switch { background: #e74c3c; border-color: #c0392b; }
+        input[type="checkbox"]:checked + .toggle-switch::after { transform: translateX(16px); background: #fff; }
+
+        /* Custom Amp Selector Strip Original */
+        .amp-selector-strip { margin-top: 25px; display: flex; justify-content: center; }
+        .custom-select-wrapper { position: relative; width: 320px; user-select: none; }
+        .custom-select { position: relative; display: flex; flex-direction: column; background: #141414; border: 1px solid #333; border-radius: 4px; cursor: pointer; }
+        .custom-select__trigger { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-family: 'Roboto Mono', monospace; font-size: 0.85rem; color: #fff; }
+        .custom-select__trigger .arrow { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #888; transition: transform 0.2s; }
+        .custom-select.open .custom-select__trigger .arrow { transform: rotate(180deg); }
+        .custom-options { position: absolute; top: 100%; left: 0; right: 0; background: #141414; border: 1px solid #333; border-top: none; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; display: none; z-index: 99; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .custom-select.open .custom-options { display: block; }
+        .custom-option { padding: 12px 16px; font-family: 'Roboto Mono', monospace; font-size: 0.85rem; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 10px; border-top: 1px solid #1c1c1c; }
+        .custom-option:hover { background: #1c1c1c; color: #fff; }
+        .custom-option.selected { color: #e74c3c; font-weight: bold; }
+        
+        .option-img { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .skin-fender-thumb { background: #3498db; }
+        .skin-vox-thumb { background: #e67e22; }
+        .skin-marshall-thumb { background: #e74c3c; }
+
+        /* Cab & VU Strip Original */
+        .cab-section { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; background: #141414; padding: 12px 20px; border-radius: 6px; border: 1px solid #262626; }
+        .cab-display { font-family: 'Roboto Mono', monospace; font-size: 0.8rem; color: #aaa; }
+        .ir-upload-btn { background: #222; color: #ccc; border: 1px solid #333; padding: 8px 16px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 0.75rem; cursor: pointer; transition: background 0.2s; }
+        .ir-upload-btn:hover { background: #333; color: #fff; }
+
+        .vu-meter-strip { margin-top: 15px; height: 6px; background: #111; border-radius: 3px; overflow: hidden; border: 1px solid #222; }
+        .vu-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #2ecc71, #f1c40f, #e74c3c); transition: width 0.05s linear; }
+
+        .footer { text-align: center; font-family: 'Roboto Mono', monospace; font-size: 0.75rem; color: #555; margin-top: 30px; }
+        
+        .setting-row { margin-bottom: 15px; text-align: left; }
+        .setting-row label { display: block; font-family: 'Roboto Mono', monospace; font-size: 0.75rem; color: #aaa; margin-bottom: 5px; }
+        .setting-row select { width: 100%; background: #141414; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 0.85rem; outline: none; }
+    </style>
+</head>
+
+<body>
+    <!-- Welcome Screen Modal Original Estilizado Profesional -->
+    <div id="welcome-modal" class="modal-overlay active">
+        <div class="modal-content">
+            <h1>SIM STOMP</h1>
+            <p>High-Fidelity Neural Amp Simulation</p>
+            <p class="subtitle">by David Signals</p>
+            <div class="instruction-list">
+                <p>⚠️ <strong>Audio Context Required</strong></p>
+                <p style="margin-top: 8px; color: #888;">Click START to initialize the high-performance audio engine and input interface.</p>
+            </div>
+            <button id="start-btn" class="modal-btn">INITIALIZE SYSTEM</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 450px;">
+            <h2 style="font-family:'Roboto Mono',monospace; font-size: 1.2rem; margin-top:0; color:#fff;">SETTINGS</h2>
+            <div class="setting-row">
+                <label>Audio Output Device</label>
+                <select id="audio-output-select">
+                    <option value="default">System Default Interface</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label>Buffer Size (Latency)</label>
+                <select id="buffer-size-select">
+                    <option value="64">64 samples (Ultra Low)</option>
+                    <option value="128" selected>128 samples (Low / Recommended)</option>
+                    <option value="256">256 samples (Medium)</option>
+                    <option value="512">512 samples (High)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label>Oversampling (Anti-Aliasing)</label>
+                <select id="oversampling-select">
+                    <option value="4" selected>4x (Studio High Quality)</option>
+                    <option value="2">2x (Balanced)</option>
+                    <option value="1">None (Low CPU)</option>
+                </select>
+            </div>
+            <button id="close-settings-btn" class="modal-btn secondary">CLOSE</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <header class="top-bar">
+            <div class="logo">SIM STOMP <span class="accent">SIGNALS</span></div>
+            <div class="top-controls">
+                <button id="settings-btn" class="icon-btn">⚙️ SETTINGS</button>
+                <button id="power-btn" class="power-btn" aria-label="Power On/Off" style="background:#e74c3c; color:#fff; border:none;">
+                    <div class="power-icon">⏻</div>
+                </button>
+            </div>
+        </header>
+
+        <main class="amp-head-unit skin-fender" id="amp-chassis">
+            <!-- Top Grille / Tubes Visual -->
+            <div class="amp-grille">
+                <div class="tube-glow" id="tube-glow"></div>
+                <div class="logo-plate">
+                    <span>SIM STOMP</span>
+                    <span class="model-name" id="model-badge">NEURAL ARCHETYPE (USA CLEAN)</span>
+                </div>
+            </div>
+
+            <!-- Main Control Panel -->
+            <div class="control-panel">
+
+                <!-- Input / Pre Section -->
+                <div class="section-group input-section">
+                    <label class="switch-wrapper">
+                        <span>GATE</span>
+                        <input type="checkbox" id="sw-gate" checked>
+                        <div class="toggle-switch"></div>
+                    </label>
+                    <div class="knob-wrapper">
+                        <div class="knob" id="knob-gate-thresh" data-param="gate" data-min="-80" data-max="0"
+                            data-value="-60">
+                            <div class="knob-indicator"></div>
+                        </div>
+                        <label>THRESH</label>
+                        <div class="floating-tooltip">-60dB</div>
+                    </div>
+                </div>
+
+                <div class="separator"></div>
+
+                <!-- Pre-Amp / Drive Section -->
+                <div class="section-group drive-section">
+                    <label class="switch-wrapper">
+                        <span>BRIGHT</span>
+                        <input type="checkbox" id="sw-bright">
+                        <div class="toggle-switch"></div>
+                    </label>
+                    <label class="switch-wrapper">
+                        <span>DRIVE</span>
+                        <input type="checkbox" id="sw-drive">
+                        <div class="toggle-switch"></div>
+                    </label>
+                    <div class="knob-wrapper">
+                        <div class="knob" id="knob-compressor" data-param="compressor" data-min="0" data-max="1"
+                            data-value="0">
+                            <div class="knob-indicator"></div>
+                        </div>
+                        <label>COMP</label>
+                        <div class="floating-tooltip">0.0</div>
+                    </div>
+                    <div class="knob-wrapper big">
+                        <div class="knob" id="knob-gain" data-param="preGain" data-min="0" data-max="10" data-value="3">
+                            <div class="knob-indicator"></div>
+                        </div>
+                        <label>GAIN</label>
+                        <div class="floating-tooltip">3.0</div>
+                    </div>
+                </div>
+
+                <div class="separator"></div>
+
+                <!-- Tone Stack -->
+                <div class="section-group eq-section">
+                    <div class="knob-wrapper">
+                        <div class="knob" id="knob-bass" data-param="bass" data-min="-10" data-max="10" data-value="0">
+                            <div class="knob-indicator"></div>
+                        </div>
+                        <label>BASS</label>
+                        <div class="floating-tooltip">0.0</div>
+                    </div>
+                    <div class="knob-wrapper">
+                        <div class="knob" id="knob-mid" data-param="mid" data-min="-10" data-max="10" data-value="0">
+                            <div class="knob-indicator"></div>
+                        </div>
+                        <label>MID</label>
+                        <div class="floating-tooltip">0.0</div>
+                    </div>
+                    <div class="knob-wrapper">
+                        <div class="knob" id="knob-treble" data-param="treble" data-min="-10" data-max="10"
+                            data-value="0">
+                            <div class="knob-indicator"></div>
+                        </div>
+                        <label>TREBLE</label>
+                        <div class="floating-tooltip">0.0</div>
+                    </div>
+                </div>
+
+                <div class="separator"></div>
+
+                <!-- Post-Amp / Power Section -->
+                <div class="section-group power-section">
+                    <div class="knob-wrapper">
+                        <div class="knob" id="knob-voice" data-param="voice" data-min="-5" data-max="5" data-value="0">
+                            <div class="knob-indicator"></div>
+                        </div>
+                        <label>VOICE</label>
+                        <div class="floating-tooltip">0.0</div>
+                    </div>
+                    <div class="knob-wrapper">
+                        <div class="knob" id="knob-presence" data-param="presence" data-min="0" data-max="10"
+                            data-value="5">
+                            <div class="knob-indicator"></div>
+                        </div>
+                        <label>PRESENCE</label>
+                        <div class="floating-tooltip">5.0</div>
+                    </div>
+                    <div class="knob-wrapper big">
+                        <div class="knob" id="knob-master" data-param="master" data-min="0" data-max="10"
+                            data-value="5">
+                            <div class="knob-indicator"></div>
+                        </div>
+                        <label>MASTER</label>
+                        <div class="floating-tooltip">5.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Amp Model Selector (Custom Dropdown Original) -->
+            <div class="amp-selector-strip">
+                <div class="custom-select-wrapper" id="custom-select-wrapper">
+                    <div class="custom-select" id="custom-select">
+                        <div class="custom-select__trigger">
+                            <span id="selected-amp-name">CLEAN (USA) - FENDER</span>
+                            <div class="arrow"></div>
+                        </div>
+                        <div class="custom-options">
+                            <div class="custom-option selected" data-value="fender_clean" data-skin="skin-fender">
+                                <span class="option-img skin-fender-thumb"></span>
+                                CLEAN (USA) - FENDER
+                            </div>
+                            <div class="custom-option" data-value="vox_chime" data-skin="skin-vox">
+                                <span class="option-img skin-vox-thumb"></span>
+                                CHIME (UK) - VOX
+                            </div>
+                            <div class="custom-option" data-value="marshall_drive" data-skin="skin-marshall">
+                                <span class="option-img skin-marshall-thumb"></span>
+                                DRIVE (BRIT) - MARSHALL
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cab / IR Loader -->
+            <div class="cab-section">
+                <div class="cab-display" id="cab-name">
+                    Cabinet IR: Default 4x12 V30 (Convolver Active)
+                </div>
+                <label class="ir-upload-btn">
+                    LOAD IR (.WAV)
+                    <input type="file" id="ir-upload" accept=".wav" style="display: none;">
+                </label>
+            </div>
+
+            <div class="vu-meter-strip">
+                <div class="vu-bar" id="vu-out"></div>
+            </div>
+
+        </main>
+
+        <footer class="footer">
+            <p>Guitar Amp Simulator By David Signals • 2026</p>
+        </footer>
+    </div>
+
+    <!-- SCRIPT DSP Y UI INTEGRADO FUNCIONAL -->
+    <script>
+        let audioCtx;
+        let inputSource;
+        let driveNode;
+        let toneStackNode;
+        let convolverNode;
+        let masterGainNode;
+        let analyserNode;
+        let isPoweredOn = true;
+
+        // Curva de saturación no lineal avanzada por modelo de amp
+        function createNeuralDistortionCurve(model, gainAmount) {
+            let n_samples = 44100;
+            let curve = new Float32Array(n_samples);
+            let k = gainAmount * 8;
+            
+            for (let i = 0; i < n_samples; ++i) {
+                let x = i * 2 / n_samples - 1;
+                if (model === 'fender_clean') {
+                    // Saturación suave asimétrica armónicos pares (estilo valvular Fender)
+                    let softX = Math.tanh(x * (1 + k * 0.3));
+                    curve[i] = softX + 0.05 * Math.sin(x * Math.PI);
+                } else if (model === 'vox_chime') {
+                    // Chime rico en armónicos agudos y compresión Clase A
+                    curve[i] = Math.sin(x * (Math.PI / 2) * (1 + k * 0.5)) / (1 + Math.abs(x) * k * 0.2);
+                } else {
+                    // British Drive (Marshall) - Saturación dura de preamplificador y etapa de potencia
+                    curve[i] = (Math.PI + 3 * k) * x / (Math.PI + 3 * k * Math.abs(x));
+                }
+            }
+            return curve;
+        }
+
+        // Inicializar Motor de Audio al hacer clic en START
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('start-btn');
+            btn.innerText = "INITIALIZING DSP...";
+
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+                
+                // Solicitar acceso a la interfaz (Guitar Input) sin filtros nativos del navegador
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        autoGainControl: false,
+                        noiseSuppression: false,
+                        latency: 0
+                    } 
+                });
+
+                inputSource = audioCtx.createMediaStreamSource(stream);
+
+                // Configurar nodos DSP profesionales
+                driveNode = audioCtx.createWaveShaper();
+                driveNode.oversample = '4x';
+                driveNode.curve = createNeuralDistortionCurve('fender_clean', 3);
+
+                // EQ Tone Stack (Biquad Filters para modelar graves, medios y agudos)
+                const bassFilter = audioCtx.createBiquadFilter();
+                bassFilter.type = 'lowshelf';
+                bassFilter.frequency.value = 250;
+                bassFilter.gain.value = 0;
+
+                const midFilter = audioCtx.createBiquadFilter();
+                midFilter.type = 'peaking';
+                midFilter.frequency.value = 800;
+                midFilter.Q.value = 1.0;
+                midFilter.gain.value = 0;
+
+                const trebleFilter = audioCtx.createBiquadFilter();
+                trebleFilter.type = 'highshelf';
+                trebleFilter.frequency.value = 3200;
+                trebleFilter.gain.value = 0;
+
+                toneStackNode = { bass: bassFilter, mid: midFilter, treble: trebleFilter };
+
+                convolverNode = audioCtx.createConvolver();
+                // Generar un IR sintético inicial de alta calidad por defecto si no se carga archivo
+                convolverNode.buffer = createDefaultCabinetIR(audioCtx);
+
+                masterGainNode = audioCtx.createGain();
+                masterGainNode.gain.value = 0.5;
+
+                analyserNode = audioCtx.createAnalyser();
+                analyserNode.fftSize = 256;
+
+                // Conectar Cadena DSP completa: Input -> Drive -> Bass -> Mid -> Treble -> Convolver -> Master -> Analyser -> Out
+                inputSource.connect(driveNode);
+                driveNode.connect(bassFilter);
+                bassFilter.connect(midFilter);
+                midFilter.connect(trebleFilter);
+                trebleFilter.connect(convolverNode);
+                convolverNode.connect(masterGainNode);
+                masterGainNode.connect(analyserNode);
+                analyserNode.connect(audioCtx.destination);
+
+                // Ocultar modal de bienvenida
+                document.getElementById('welcome-modal').classList.remove('active');
+                
+                // Iniciar animador de VU Meter
+                requestAnimationFrame(updateVUMeter);
+
+            } catch (err) {
+                console.error("Error al iniciar audio:", err);
+                btn.innerText = "ACCESS DENIED - RETRY";
+                alert("Por favor permite el acceso al micrófono / interfaz de audio para utilizar el simulador.");
+            }
+        });
+
+        // Generador de IR de gabinete por defecto (para que funcione inmediatamente)
+        function createDefaultCabinetIR(ctx) {
+            let rate = ctx.sampleRate;
+            let length = rate * 0.05; // 50ms impulse response
+            let impulse = ctx.createBuffer(1, length, rate);
+            let output = impulse.getChannelData(0);
+            for (let i = 0; i < length; i++) {
+                output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (rate * 0.01));
+            }
+            return impulse;
+        }
+
+        // Cargador de IRs personalizado (.wav de tu carpeta assets/irs o disco)
+        document.getElementById('ir-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file || !audioCtx) return;
+
+            document.getElementById('cab-name').innerText = "Cabinet IR: Loading...";
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                try {
+                    const audioData = event.target.result;
+                    const decodedBuffer = await audioCtx.decodeAudioData(audioData);
+                    convolverNode.buffer = decodedBuffer;
+                    document.getElementById('cab-name').innerText = `Cabinet IR: ${file.name} (Loaded)`;
+                } catch (err) {
+                    document.getElementById('cab-name').innerText = "Cabinet IR: Error Loading File";
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // VU Meter en tiempo real
+        function updateVUMeter() {
+            if (analyserNode && isPoweredOn) {
+                let dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+                analyserNode.getByteFrequencyData(dataArray);
+                let sum = dataArray.reduce((a, b) => a + b, 0);
+                let avg = sum / dataArray.length;
+                let percentage = Math.min(100, (avg / 128) * 100 * 1.5);
+                document.getElementById('vu-out').style.width = percentage + '%';
+            } else {
+                document.getElementById('vu-out').style.width = '0%';
+            }
+            requestAnimationFrame(updateVUMeter);
+        }
+
+        // Interacción del Selector Personalizado Original de Amps
+        const customSelect = document.getElementById('custom-select');
+        const selectedName = document.getElementById('selected-amp-name');
+        const modelBadge = document.getElementById('model-badge');
+        const ampChassis = document.getElementById('amp-chassis');
+        let currentAmpModel = 'fender_clean';
+
+        customSelect.querySelector('.custom-select__trigger').addEventListener('click', () => {
+            customSelect.classList.toggle('open');
+        });
+
+        document.querySelectorAll('.custom-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                
+                const value = this.getAttribute('data-value');
+                const skin = this.getAttribute('data-skin');
+                const text = this.innerText;
+                
+                selectedName.innerText = text;
+                modelBadge.innerText = `NEURAL ARCHETYPE (${text})`;
+                customSelect.classList.remove('open');
+                
+                currentAmpModel = value;
+                ampChassis.className = `amp-head-unit ${skin}`;
+
+                // Actualizar curva de distorsión según el amp seleccionado
+                const gainVal = parseFloat(document.getElementById('knob-gain').getAttribute('data-value'));
+                if (driveNode) {
+                    driveNode.curve = createNeuralDistortionCurve(currentAmpModel, gainVal);
+                }
+            });
+        });
+
+        window.addEventListener('click', (e) => {
+            if (!customSelect.contains(e.target)) {
+                customSelect.classList.remove('open');
+            }
+        });
+
+        // Control de Knobs Interactivos Originales con Tooltips
+        document.querySelectorAll('.knob').forEach(knob => {
+            let isDragging = false;
+            let startY = 0;
+            const min = parseFloat(knob.getAttribute('data-min'));
+            const max = parseFloat(knob.getAttribute('data-max'));
+            let val = parseFloat(knob.getAttribute('data-value'));
+            const param = knob.getAttribute('data-param');
+            const tooltip = knob.parentElement.querySelector('.floating-tooltip');
+
+            const updateVisual = (v) => {
+                let deg = ((v - min) / (max - min)) * 270 - 135;
+                knob.style.transform = `rotate(${deg}deg)`;
+                if(tooltip) tooltip.innerText = v.toFixed(1) + (param === 'gate' ? 'dB' : '');
+            };
+
+            updateVisual(val);
+
+            knob.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startY = e.clientY;
+                e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                let deltaY = startY - e.clientY;
+                startY = e.clientY;
+                
+                val += deltaY * 0.05 * ((max - min) / 10);
+                if (val < min) val = min;
+                if (val > max) val = max;
+
+                knob.setAttribute('data-value', val);
+                updateVisual(val);
+
+                // Aplicar cambios en tiempo real al motor de audio DSP
+                if (audioCtx) {
+                    if (param === 'preGain' && driveNode) {
+                        driveNode.curve = createNeuralDistortionCurve(currentAmpModel, val);
+                    } else if (param === 'master' && masterGainNode) {
+                        masterGainNode.gain.value = val / 10;
+                    } else if (param === 'bass' && toneStackNode) {
+                        toneStackNode.bass.gain.value = val;
+                    } else if (param === 'mid' && toneStackNode) {
+                        toneStackNode.mid.gain.value = val;
+                    } else if (param === 'treble' && toneStackNode) {
+                        toneStackNode.treble.gain.value = val;
+                    }
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        });
+
+        // Modales de Settings y Power
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            document.getElementById('settings-modal').classList.add('active');
+        });
+        document.getElementById('close-settings-btn').addEventListener('click', () => {
+            document.getElementById('settings-modal').classList.remove('active');
+        });
+
+        const powerBtn = document.getElementById('power-btn');
+        powerBtn.addEventListener('click', () => {
+            isPoweredOn = !isPoweredOn;
+            powerBtn.style.background = isPoweredOn ? '#e74c3c' : '#333';
+            if (masterGainNode && audioCtx) {
+                masterGainNode.gain.value = isPoweredOn ? (parseFloat(document.getElementById('knob-master').getAttribute('data-value')) / 10) : 0;
+            }
+        });
+    </script>
+</body>
+</html>
